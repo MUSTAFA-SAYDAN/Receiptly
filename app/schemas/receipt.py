@@ -1,10 +1,10 @@
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 # Ortak alanlar
 class ReceiptBase(BaseModel):
     merchant_name: str
-    total_amount: float
+    total_amount: float = Field(gt=0)
     receipt_date: datetime
 
 # Fiş eklerken (POST) kullanıcıdan istenecek veriler
