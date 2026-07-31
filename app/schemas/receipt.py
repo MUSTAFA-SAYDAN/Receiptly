@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 
 # Ortak alanlar
 class ReceiptBase(BaseModel):
-    merchant_name: str
+    merchant_name: str = Field(min_length=1, max_length=255)
     total_amount: float = Field(gt=0)
     receipt_date: datetime
 
