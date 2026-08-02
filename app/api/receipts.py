@@ -1,6 +1,8 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from datetime import datetime
+from fastapi import Query
 
 from app.db.session import get_db
 from app.schemas.receipt import ReceiptCreate, ReceiptResponse, ReceiptUpdate
@@ -17,8 +19,26 @@ def create_receipt(receipt_in: ReceiptCreate, db: Session = Depends(get_db)):
 
 # 2. TÜM FİŞLERİ LİSTELEME (GET)
 @router.get("/", response_model=List[ReceiptResponse])
-def list_receipts(db: Session = Depends(get_db)):
-    return ReceiptService.get_all(db=db)
+def list_receipts(
+    db: Session = Depends(get_db),
+    skip: int = Query(0, ge=0, description="Atlanacak kayıt sayısı"),
+    limit: int = Query(10, ge=1, le=100, description="Getirilecek maksimum kayıt sayısı (Max 100)"),
+    merchant_name: str | None = Query(None, description="Mağaza adına göre arama (A/a duyarsız)"),
+    start_date: datetime | None = Query(None, description="Başlangıç tarihi (Örn: 2026-08-01)"),
+    end_date: datetime | None = Query(None, description="Bitiş tarihi (Örn: 2026-08-31)"),
+    min_amount: float | None = Query(None, description="Minimum harcama tutarı"),
+    max_amount: float | None = Query(None, description="Maksimum harcama tutarı"),
+):
+    return ReceiptService.get_all(
+        db=db,
+        skip=skip,
+        limit=limit,
+        merchant_name=merchant_name,
+        start_date=start_date,
+        end_date=end_date,
+        min_amount=min_amount,
+        max_amount=max_amount
+    )
 
 @router.get("/summary", response_model=AnalyticsSummaryResponse)
 def get_analytics_summary(db: Session = Depends(get_db)):
