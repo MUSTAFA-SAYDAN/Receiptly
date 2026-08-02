@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models.receipt import Receipt
+from app.models.receipt import Receipt, ReceiptItem
 from app.schemas.receipt import ReceiptCreate, ReceiptUpdate
 
 class ReceiptService:
@@ -19,7 +19,8 @@ class ReceiptService:
         db_receipt = Receipt(
             merchant_name=receipt_in.merchant_name,
             total_amount=receipt_in.total_amount,
-            receipt_date=receipt_in.receipt_date
+            receipt_date=receipt_in.receipt_date,
+            items=[ReceiptItem(**item.model_dump()) for item in receipt_in.items]
         )
         db.add(db_receipt)
         db.commit()
