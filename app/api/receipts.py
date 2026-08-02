@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.models.receipt import Receipt
-from app.schemas.receipt import ReceiptCreate, ReceiptResponse
+from app.schemas.receipt import ReceiptCreate, ReceiptResponse, ReceiptUpdate
 
 router = APIRouter(prefix="/receipts", tags=["Receipts"])
 
@@ -49,3 +49,29 @@ def delete_receipt(receipt_id: int, db: Session = Depends(get_db)):
     db.delete(db_receipt)
     db.commit()
     return None
+
+# 5. FİŞ GÜNCELLEME (PUT /{receipt_id})
+@router.put("/{receipt_id}", response_model=ReceiptResponse)
+def update_receipt(
+    receipt_id: int, 
+    receipt_in: ReceiptUpdate, 
+    db: Session = Depends(get_db)
+):
+    # 1. Garson depoda bu fiş var mı diye bakar
+    db_receipt = db.query(Receipt).filter(Receipt.id == receipt_id).first()
+    if not db_receipt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Güncellenecek fiş bulunamadı!"
+        )
+
+    # 2. Müşterinin SADECE doldurduğu alanları ayıklar
+    update_data = receipt_in.model_dump(exclude_unset=True)
+
+    # 3. Raftaki kutunun etiketlerini günceller
+    for field, value in update_data.items():
+        setattr(db_receipt, field, value)
+
+    db.commit()
+    db.refresh(db_receipt)
+    return db_receipt

@@ -18,3 +18,9 @@ class ReceiptResponse(ReceiptBase):
 
     class Config:
         from_attributes = True  # SQLAlchemy modelleriyle Pydantic'i uyumlu çalıştırır
+
+# Fiş güncellerken (PUT) kullanılacak esnek form
+class ReceiptUpdate(BaseModel):
+    merchant_name: str | None = Field(default=None, min_length=1, max_length=255)
+    total_amount: float | None = Field(default=None, gt=0)
+    receipt_date: datetime | None = None
