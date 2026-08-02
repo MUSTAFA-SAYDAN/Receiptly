@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.schemas.receipt import ReceiptCreate, ReceiptResponse, ReceiptUpdate
 from app.services.receipt import ReceiptService
+from app.schemas.analytics import AnalyticsSummaryResponse
+from app.services.analytics import AnalyticsService
 
 router = APIRouter(prefix="/receipts", tags=["Receipts"])
 
@@ -17,6 +19,13 @@ def create_receipt(receipt_in: ReceiptCreate, db: Session = Depends(get_db)):
 @router.get("/", response_model=List[ReceiptResponse])
 def list_receipts(db: Session = Depends(get_db)):
     return ReceiptService.get_all(db=db)
+
+@router.get("/summary", response_model=AnalyticsSummaryResponse)
+def get_analytics_summary(db: Session = Depends(get_db)):
+    """
+    Harcama özetini ve en çok alışveriş yapılan mağazaları getirir.
+    """
+    return AnalyticsService.get_summary(db=db)
 
 # 3. SPESİFİK FİŞİ GETİRME (GET /{receipt_id})
 @router.get("/{receipt_id}", response_model=ReceiptResponse)
