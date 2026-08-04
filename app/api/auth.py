@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user
 from app.core.security import create_access_token
@@ -18,12 +18,12 @@ router = APIRouter()
     status_code=status.HTTP_201_CREATED,
     summary="Yeni kullanıcı kaydı oluşturur"
 )
-async def register(
+def register(
     user_in: UserCreate,
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Yeni müşteri kaydı alır, şifreyi hash'leyip saklar."""
-    return await UserService.create_user(db=db, user_in=user_in)
+    return UserService.create_user(db=db, user_in=user_in)
 
 
 # 2. KULLANICI GİRİŞ ENDPOINT'İ (Token Alımı)
@@ -31,12 +31,12 @@ async def register(
     "/login", 
     summary="Giriş yapar ve VIP Kart (JWT Access Token) üretir"
 )
-async def login(
+def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """OAuth2 uyumlu giriş formu ile JWT token üretir."""
-    user = await UserService.authenticate_user(
+    user = UserService.authenticate_user(
         db=db, 
         email=form_data.username, 
         password=form_data.password
@@ -62,7 +62,7 @@ async def login(
     response_model=UserResponse,
     summary="Oturum açmış kullanıcının profil detaylarını getirir"
 )
-async def read_user_me(
+def read_user_me(
     current_user: User = Depends(get_current_user)
 ):
     """Turnikeden geçen aktif kullanıcının bilgilerini döner."""
