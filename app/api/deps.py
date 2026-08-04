@@ -11,7 +11,7 @@ from app.models.user import User
 from app.services.user import UserService
 
 # OAuth2 şeması: Swagger UI ve FastAPI için token alışveriş noktasını belirler
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 
 # 1. VERİTABANI OTURUM BAĞIMLILIĞI (DB Session Injector)
