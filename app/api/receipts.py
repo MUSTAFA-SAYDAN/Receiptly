@@ -1,10 +1,11 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from datetime import datetime
-from fastapi import Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy.orm import Session
 
-from app.db.session import get_db
+# 🔗 Bağımlılıklar ve VIP Turnikesi deps.py dosyasından alınıyor
+from app.api.deps import get_db, get_current_user
+from app.models.user import User
 from app.schemas.receipt import ReceiptCreate, ReceiptResponse, ReceiptUpdate
 from app.services.receipt import ReceiptService
 from app.schemas.analytics import AnalyticsSummaryResponse
@@ -12,15 +13,22 @@ from app.services.analytics import AnalyticsService
 
 router = APIRouter(prefix="/receipts", tags=["Receipts"])
 
+
 # 1. YENİ FİŞ EKLEME (POST)
 @router.post("/", response_model=ReceiptResponse, status_code=status.HTTP_201_CREATED)
-def create_receipt(receipt_in: ReceiptCreate, db: Session = Depends(get_db)):
+def create_receipt(
+    receipt_in: ReceiptCreate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # 🔐 Güvenlik Turnikesi
+):
     return ReceiptService.create(db=db, receipt_in=receipt_in)
+
 
 # 2. TÜM FİŞLERİ LİSTELEME (GET)
 @router.get("/", response_model=List[ReceiptResponse])
 def list_receipts(
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),  # 🔐 Güvenlik Turnikesi
     skip: int = Query(0, ge=0, description="Atlanacak kayıt sayısı"),
     limit: int = Query(10, ge=1, le=100, description="Getirilecek maksimum kayıt sayısı (Max 100)"),
     merchant_name: str | None = Query(None, description="Mağaza adına göre arama (A/a duyarsız)"),
@@ -40,16 +48,26 @@ def list_receipts(
         max_amount=max_amount
     )
 
+
+# ANALİZ ÖZETİ (GET /summary)
 @router.get("/summary", response_model=AnalyticsSummaryResponse)
-def get_analytics_summary(db: Session = Depends(get_db)):
+def get_analytics_summary(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # 🔐 Güvenlik Turnikesi
+):
     """
     Harcama özetini ve en çok alışveriş yapılan mağazaları getirir.
     """
     return AnalyticsService.get_summary(db=db)
 
+
 # 3. SPESİFİK FİŞİ GETİRME (GET /{receipt_id})
 @router.get("/{receipt_id}", response_model=ReceiptResponse)
-def get_receipt(receipt_id: int, db: Session = Depends(get_db)):
+def get_receipt(
+    receipt_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # 🔐 Güvenlik Turnikesi
+):
     db_receipt = ReceiptService.get_by_id(db=db, receipt_id=receipt_id)
     if not db_receipt:
         raise HTTPException(
@@ -58,9 +76,15 @@ def get_receipt(receipt_id: int, db: Session = Depends(get_db)):
         )
     return db_receipt
 
+
 # 4. FİŞ GÜNCELLEME (PUT /{receipt_id})
 @router.put("/{receipt_id}", response_model=ReceiptResponse)
-def update_receipt(receipt_id: int, receipt_in: ReceiptUpdate, db: Session = Depends(get_db)):
+def update_receipt(
+    receipt_id: int, 
+    receipt_in: ReceiptUpdate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # 🔐 Güvenlik Turnikesi
+):
     db_receipt = ReceiptService.get_by_id(db=db, receipt_id=receipt_id)
     if not db_receipt:
         raise HTTPException(
@@ -69,9 +93,14 @@ def update_receipt(receipt_id: int, receipt_in: ReceiptUpdate, db: Session = Dep
         )
     return ReceiptService.update(db=db, db_receipt=db_receipt, receipt_in=receipt_in)
 
+
 # 5. FİŞ SİLME (DELETE /{receipt_id})
 @router.delete("/{receipt_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_receipt(receipt_id: int, db: Session = Depends(get_db)):
+def delete_receipt(
+    receipt_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # 🔐 Güvenlik Turnikesi
+):
     db_receipt = ReceiptService.get_by_id(db=db, receipt_id=receipt_id)
     if not db_receipt:
         raise HTTPException(
