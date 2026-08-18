@@ -1,7 +1,8 @@
 from typing import List
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile
 from sqlalchemy.orm import Session
+from app import models
 
 # 🔗 Bağımlılıklar ve VIP Turnikesi deps.py dosyasından alınıyor
 from app.api.deps import get_db, get_current_user
@@ -10,6 +11,7 @@ from app.schemas.receipt import ReceiptCreate, ReceiptResponse, ReceiptUpdate
 from app.services.receipt import ReceiptService
 from app.schemas.analytics import AnalyticsSummaryResponse
 from app.services.analytics import AnalyticsService
+from app.ocr import parse_receipt_image
 
 router = APIRouter(prefix="/receipts", tags=["Receipts"])
 
@@ -109,3 +111,32 @@ def delete_receipt(
         )
     ReceiptService.delete(db=db, db_receipt=db_receipt)
     return None
+
+@router.post("/upload")
+async def upload_receipt_image(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Fiş fotoğrafını alır, OCR ile içeriğini okur ve veritabanına kayıt eder.
+    """
+    image_bytes = await file.read()
+    ocr_result = parse_receipt_image(image_bytes)
+    
+    # owner_id yerine user_id olarak güncellendi
+    new_receipt = models.Receipt(
+        merchant_name=ocr_result["merchant_name"],
+        total_amount=ocr_result["total_amount"],
+        user_id=current_user.id
+    )
+    
+    db.add(new_receipt)
+    db.commit()
+    db.refresh(new_receipt)
+    
+    return {
+        "message": "Fiş görseli başarıyla işlendi!",
+        "receipt": new_receipt,
+        "extracted_raw_text": ocr_result["raw_text"]
+    }
